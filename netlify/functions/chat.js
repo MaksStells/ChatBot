@@ -5,7 +5,7 @@ exports.handler = async function(event) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${process.env.OPENAI_KEY}`
+      "Authorization": `Bearer ${process.env.ChatBot}`
     },
     body: JSON.stringify({
       model: "gpt-4o-mini",
