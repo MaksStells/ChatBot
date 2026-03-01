@@ -1,6 +1,4 @@
-import fetch from "node-fetch";
-
-export async function handler(event) {
+exports.handler = async function(event) {
   const { message } = JSON.parse(event.body);
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -35,4 +33,4 @@ Give clear, accurate, supportive answers.
     statusCode: 200,
     body: JSON.stringify({ reply: data.choices[0].message.content })
   };
-}
+};
