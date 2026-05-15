@@ -1,0 +1,4 @@
+<?php
+define("SUPABASE_URL", "your_supabase_project_url");
+define("SUPABASE_KEY", "your_supabase_anon_key");
+define("GROQ_API_KEY", "your_groq_api_key");

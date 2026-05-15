@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>BrightBot - My Profile</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="mobile.css" />
+
+    <script>
+        if (localStorage.getItem("theme") === "dark") {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+    </script>
+    <style>
+        .profile-page {
+          flex: 1;
+          padding: 30px;
+          overflow-y: auto;
+          background-color: var(--bg);
+          transition: background-color 0.2s;
+        }
+        @media (max-width: 768px) {
+          .profile-page {
+            padding: 16px;
+            padding-top: calc(52px + 16px);
+            padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 16px);
+          }
+        }
+
+        .profile-page h1    { font-size: 22px; margin-bottom: 5px; color: var(--text); }
+        .profile-page .subtitle { color: var(--sidebar-muted); font-size: 14px; margin-bottom: 25px; }
+
+        .card {
+          background-color: var(--bubble-bot-bg);
+          border: 1px solid var(--bubble-bot-border);
+          border-radius: 10px;
+          padding: 20px 25px;
+          margin-bottom: 20px;
+          transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .card:last-child { margin-bottom: 0; }
+
+        .card h2 { font-size: 16px; margin-bottom: 15px; color: var(--text); }
+
+        .profile-layout {
+          display: flex;
+          gap: 20px;
+          align-items: flex-start;
+        }
+
+        /* Left column: stats + XP + badges */
+        .profile-col-left {
+          flex: 1;
+          min-width: 0;
+        }
+
+        /* Right column: pfp stacked above personal details */
+        .profile-col-right {
+          width: 340px;
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 0; 
+        }
+
+        @media (max-width: 800px) {
+          .profile-layout { flex-direction: column; }
+          .profile-col-right { width: 100%; }
+        }
+
+        .stats-row {
+          display: flex;
+          gap: 12px;
+          margin-bottom: 20px;
+        }
+
+        .stat-box {
+          flex: 1;
+          background-color: var(--bubble-bot-bg);
+          border: 1px solid var(--bubble-bot-border);
+          border-radius: 10px;
+          padding: 16px;
+          text-align: center;
+          transition: background-color 0.2s;
+        }
+
+        .stat-box .stat-icon  { font-size: 22px; margin-bottom: 6px; }
+        .stat-box .stat-value { font-size: 22px; font-weight: bold; color: var(--accent); }
+        .stat-box .stat-label { font-size: 12px; color: var(--sidebar-muted); margin-top: 3px; }
+
+        .xp-bar-wrap {
+          background-color: var(--sidebar-border);
+          border-radius: 999px;
+          height: 10px;
+          margin-top: 10px;
+          overflow: hidden;
+        }
+
+        .xp-bar-fill {
+          height: 100%;
+          background-color: var(--accent);
+          border-radius: 999px;
+          transition: width 0.5s ease;
+        }
+
+        .xp-label {
+          display: flex;
+          justify-content: space-between;
+          font-size: 12px;
+          color: var(--sidebar-muted);
+          margin-top: 5px;
+        }
+
+        .badges-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+          gap: 12px;
+        }
+
+        .badge-item {
+          background-color: var(--bg);
+          border: 1px solid var(--bubble-bot-border);
+          border-radius: 10px;
+          padding: 14px 10px;
+          text-align: center;
+          transition: border-color 0.2s, opacity 0.2s;
+        }
+
+        .badge-item.earned  { border-color: var(--accent); }
+        .badge-item.locked  { opacity: 0.4; filter: grayscale(1); }
+
+        .badge-icon  { font-size: 28px; margin-bottom: 6px; }
+        .badge-name  { font-size: 12px; font-weight: bold; color: var(--text); margin-bottom: 3px; }
+        .badge-desc  { font-size: 11px; color: var(--sidebar-muted); }
+
+        .pfp-section {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .pfp-preview {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          background-color: var(--accent);
+          color: white;
+          font-size: 30px;
+          font-weight: bold;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          flex-shrink: 0;
+        }
+
+        .pfp-preview img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+        .pfp-info h3    { font-size: 15px; margin-bottom: 5px; color: var(--text); }
+        .pfp-info p     { font-size: 13px; color: var(--sidebar-muted); margin-bottom: 8px; }
+        .pfp-info input { border: 1px solid var(--input-border); border-radius: 6px; padding: 8px 12px; font-size: 13px; font-family: Arial, sans-serif; outline: none; width: 100%; max-width: 300px; background-color: var(--input-bg); color: var(--text); }
+        .pfp-info input:focus { border-color: var(--accent); }
+
+        .form-group           { margin-bottom: 16px; }
+        .form-group label     { display: block; font-size: 13px; color: var(--sidebar-muted); font-weight: bold; margin-bottom: 6px; }
+
+        .form-group input[type="text"],
+        .form-group select,
+        .form-group textarea {
+          width: 100%;
+          box-sizing: border-box;
+          border: 1px solid var(--input-border);
+          border-radius: 6px;
+          padding: 10px 12px;
+          font-size: 14px;
+          font-family: Arial, sans-serif;
+          outline: none;
+          background-color: var(--input-bg);
+          color: var(--text);
+          transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group select:focus,
+        .form-group textarea:focus { border-color: var(--accent); }
+
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .form-group input.readonly { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-save {
+          background-color: var(--accent);
+          color: white;
+          border: none;
+          border-radius: 6px;
+          padding: 11px 25px;
+          font-size: 14px;
+          font-weight: bold;
+          cursor: pointer;
+        }
+
+        .btn-save:hover { background-color: var(--accent-hover); }
+
+        .save-msg       { font-size: 13px; color: var(--accent); display: none; margin-left: 12px; }
+        .save-msg.error { color: #e74c3c; }
+
+        [data-theme="dark"] body {
+          background-color: #0d1117 !important;
+        }
+        [data-theme="dark"] .quiz-page,
+        [data-theme="dark"] .profile-page {
+          background-color: #0d1117 !important;
+        }
+
+        [data-theme="dark"] {
+          --text: #e6edf3;
+          --sidebar-muted: #8b949e;
+          --input-bg: #0d1117;
+          --input-border: #30363d;
+        }
+        [data-theme="dark"] body,
+        [data-theme="dark"] .profile-page { color: #e6edf3; }
+        [data-theme="dark"] h1,
+        [data-theme="dark"] h2,
+        [data-theme="dark"] h3,
+        [data-theme="dark"] p,
+        [data-theme="dark"] label,
+        [data-theme="dark"] span { color: #e6edf3; }
+        [data-theme="dark"] .subtitle,
+        [data-theme="dark"] .stat-label,
+        [data-theme="dark"] .badge-desc,
+        [data-theme="dark"] .badge-card p { color: #8b949e; }
+        [data-theme="dark"] .card,
+        [data-theme="dark"] .stat-box,
+        [data-theme="dark"] .badge-card {
+          background-color: #161b22;
+          border-color: #30363d;
+        }
+        [data-theme="dark"] input,
+        [data-theme="dark"] select,
+        [data-theme="dark"] textarea {
+          background-color: #0d1117;
+          border-color: #30363d;
+          color: #e6edf3;
+        }
+        [data-theme="dark"] input::placeholder,
+        [data-theme="dark"] textarea::placeholder { color: #8b949e; }
+        [data-theme="dark"] .xp-bar-wrap { background-color: #30363d; }
+        [data-theme="dark"] .badge-name { color: #e6edf3; }
+        [data-theme="dark"] .pfp-info h3 { color: #e6edf3; }
+    </style>
+  <link rel="icon" type="image/x-icon" href="Images/brightbot-icon.ico">
+  <link rel="icon" type="image/svg+xml" href="Images/brightbot-icon.svg">
+  <link rel="apple-touch-icon" href="Images/brightbot-icon-192.png">
+</head>
+<body>
+<header class="mobile-header">
+  <a href="index.html" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:#ccc;text-decoration:none;font-size:22px;">&#8592;</a>
+  <div class="brand">
+    <div class="brand-icon">B</div>
+    <span class="brand-name">👤 My Profile</span>
+  </div>
+  <button id="hamburger-btn" class="hamburger-btn">&#x2630;</button>
+</header>
+
+<!-- Mobile drawer -->
+<div id="drawer-overlay" class="drawer-overlay"></div>
+<div id="mobile-drawer" class="drawer">
+  <div class="drawer-top">
+    <div class="brand-icon">B</div>
+    <span style="color:#fff;font-size:17px;font-weight:700;margin-left:6px;">BrightBot</span>
+    <button id="drawer-close" class="drawer-close">&#x2715;</button>
+  </div>
+  <div class="drawer-body">
+    <p class="drawer-section-label">Navigation</p>
+    <a href="index.html" class="drawer-nav-link">💬 Chatbot</a>
+    <a href="calendar.html" class="drawer-nav-link">📅 Calendar</a>
+    <a href="quiz.html" class="drawer-nav-link ">🧠 Quiz</a>
+    <a href="pomotimer.html" class="drawer-nav-link">🍅 Pomodoro Timer</a>
+    <a href="questioneditor.html" class="drawer-nav-link">✏️ Question Editor</a>
+    <a href="profile.html" class="drawer-nav-link active">👤 My Profile</a>
+  </div>
+  <div class="drawer-footer">
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <div class="toggle-track"><div class="toggle-thumb"></div></div>
+      <span class="toggle-label" id="toggle-label-drawer">Dark Mode</span>
+    </button>
+    <br/>
+    <p>Signed in as <strong id="drawer-username"></strong></p>
+    <a href="#" id="drawer-logout">Sign out</a>
+  </div>
+</div>
+
+<div class="layout">
+
+    <div class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">B</div>
+            <span class="brand-name">BrightBot</span>
+        </div>
+
+        <div class="topics">
+            <p class="topics-label">Navigation</p>
+            <a href="index.html" class="topic-btn">💬 Chatbot</a>
+            <a href="calendar.html" class="topic-btn">📅 Calendar</a>
+            <a href="quiz.html" class="topic-btn">🧠 Quiz</a>
+            <a href="pomotimer.html" class="topic-btn">🍅 Pomodoro Timer</a>
+            <a href="questioneditor.html" class="topic-btn">✏️ Question Editor</a>
+            <a href="profile.html" class="topic-btn active">👤 My Profile</a>
+        </div>
+
+        <div class="sidebar-footer">
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <div class="toggle-track"><div class="toggle-thumb"></div></div>
+                <span class="toggle-label" id="toggle-label">Dark Mode</span>
+            </button>
+            <br/>
+            <p>Signed in as <strong id="username-display"></strong></p>
+            <a href="#" id="logoutBtn">Sign out</a>
+        </div>
+    </div>
+
+    <!-- Main profile area -->
+    <div class="profile-page">
+
+        <h1>My Profile</h1>
+        <p class="subtitle">Your stats, badges and personal details.</p>
+
+        <div class="profile-layout">
+
+            <div class="profile-col-right">
+
+                <!-- Profile picture -->
+                <div class="card">
+                    <h2>Profile Picture</h2>
+                    <div class="pfp-section">
+                        <div class="pfp-preview" id="pfpPreview">
+                            <span id="pfpInitial"></span>
+                        </div>
+                        <div class="pfp-info">
+                            <h3>Profile Picture</h3>
+                            <p>Paste an image URL to set your picture.</p>
+                            <input type="text" id="pfpUrl" placeholder="https://example.com/photo.jpg" oninput="previewPfp()" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personal details -->
+                <div class="card">
+                    <h2>Personal Details</h2>
+
+                    <div class="form-group">
+                        <label>Username (cannot be changed)</label>
+                        <input type="text" id="username" class="readonly" readonly />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email (cannot be changed)</label>
+                        <input type="text" id="email" class="readonly" readonly />
+                    </div>
+
+                    <div class="form-group">
+                        <label>First Name</label>
+                        <input type="text" id="firstname" placeholder="Enter your first name" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Education Level</label>
+                        <select id="educationLevel">
+                            <option value="">-- Select your level --</option>
+                            <option value="Foundation">Foundation Year</option>
+                            <option value="Year 1">Year 1 (Undergraduate)</option>
+                            <option value="Year 2">Year 2 (Undergraduate)</option>
+                            <option value="Year 3">Year 3 (Undergraduate)</option>
+                            <option value="Masters">Masters</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Study Interests</label>
+                        <textarea id="studyInterests" placeholder="e.g. Machine learning, web development..."></textarea>
+                    </div>
+
+                    <div style="display:flex;align-items:center;">
+                        <button class="btn-save" onclick="saveProfile()">Save Changes</button>
+                        <span class="save-msg" id="saveMsg"></span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="profile-col-left">
+
+                <!-- Stats row -->
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <div class="stat-icon">⚡</div>
+                        <div class="stat-value" id="stat-level">-</div>
+                        <div class="stat-label">Level</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-icon">🔥</div>
+                        <div class="stat-value" id="stat-streak">-</div>
+                        <div class="stat-label">Day Streak</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-icon">🏅</div>
+                        <div class="stat-value" id="stat-badges">-</div>
+                        <div class="stat-label">Badges</div>
+                    </div>
+                </div>
+
+                <!-- XP progress bar -->
+                <div class="card">
+                    <h2>⭐ XP Progress</h2>
+                    <div class="xp-bar-wrap">
+                        <div class="xp-bar-fill" id="xp-bar" style="width:0%"></div>
+                    </div>
+                    <div class="xp-label">
+                        <span id="xp-current">0 XP</span>
+                        <span id="xp-needed">/ 100 XP to next level</span>
+                    </div>
+                </div>
+
+                <!-- Badges -->
+                <div class="card">
+                    <h2>🏆 Badges</h2>
+                    <div class="badges-grid" id="badges-grid">
+                        <p style="color:var(--sidebar-muted);font-size:13px;">Loading badges...</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function syncToggleLabel(isDark) {
+      var lbl  = document.getElementById("toggle-label");
+      var lblD = document.getElementById("toggle-label-drawer");
+      var text = isDark ? "Light Mode" : "Dark Mode";
+      if (lbl)  lbl.textContent  = text;
+      if (lblD) lblD.textContent = text;
+    }
+
+    function toggleTheme() {
+      var isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      document.documentElement.setAttribute("data-theme", isDark ? "" : "dark");
+      localStorage.setItem("theme", isDark ? "light" : "dark");
+      syncToggleLabel(!isDark);
+    }
+
+    (function() {
+      var isDark = localStorage.getItem("theme") === "dark";
+      if (isDark) document.documentElement.setAttribute("data-theme", "dark");
+      syncToggleLabel(isDark);
+    })();
+
+    fetch("auth.php?action=check")
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (!data.loggedIn) { window.location.href = "login.html"; return; }
+        document.getElementById("username-display").textContent = data.username;
+        loadProfile();
+        loadStats();
+      });
+
+    document.getElementById("logoutBtn").addEventListener("click", function() {
+      fetch("auth.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "logout" })
+      }).then(function() { window.location.href = "login.html"; });
+    });
+
+    function loadProfile() {
+      fetch("profile.php?action=get")
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data.success) return;
+          var p = data.profile;
+          document.getElementById("username").value       = p.username        || "";
+          document.getElementById("email").value          = p.email           || "";
+          document.getElementById("firstname").value      = p.first_name      || "";
+          document.getElementById("educationLevel").value = p.education_level || "";
+          document.getElementById("studyInterests").value = p.study_interests || "";
+          document.getElementById("pfpUrl").value      = p.pfp_url      || "";
+          updatePfpDisplay(p.pfp_url, p.username);
+        });
+    }
+
+    function loadStats() {
+      fetch("stats.php?action=get")
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data.success) return;
+
+          var s = data.stats;
+
+          document.getElementById("stat-level").textContent  = s.level;
+          document.getElementById("stat-streak").textContent = s.streak;
+
+          var earnedCount = 0;
+          for (var i = 0; i < data.badges.length; i++) {
+            if (data.badges[i].earned) earnedCount++;
+          }
+          document.getElementById("stat-badges").textContent = earnedCount;
+
+          var percent = Math.min(100, Math.round((s.xp / s.xp_needed) * 100));
+          document.getElementById("xp-bar").style.width    = percent + "%";
+          document.getElementById("xp-current").textContent = s.xp + " XP";
+          document.getElementById("xp-needed").textContent  = "/ " + s.xp_needed + " XP to level " + (s.level + 1);
+
+          var grid = document.getElementById("badges-grid");
+          grid.innerHTML = "";
+
+          for (var j = 0; j < data.badges.length; j++) {
+            var b    = data.badges[j];
+            var item = document.createElement("div");
+            item.className = "badge-item " + (b.earned ? "earned" : "locked");
+            item.innerHTML =
+              '<div class="badge-icon">' + b.icon + '</div>' +
+              '<div class="badge-name">' + b.name + '</div>' +
+              '<div class="badge-desc">' + b.desc + '</div>';
+            grid.appendChild(item);
+          }
+        });
+    }
+
+    function updatePfpDisplay(url, username) {
+      var preview = document.getElementById("pfpPreview");
+      if (url && url !== "") {
+        preview.innerHTML = '<img src="' + url + '" alt="Profile picture" />';
+      } else {
+        preview.innerHTML = '<span>' + (username ? username[0].toUpperCase() : "?") + '</span>';
+      }
+    }
+
+    function previewPfp() {
+      var url      = document.getElementById("pfpUrl").value.trim();
+      var username = document.getElementById("username").value;
+      updatePfpDisplay(url, username);
+    }
+
+    function saveProfile() {
+      var saveMsg = document.getElementById("saveMsg");
+      saveMsg.style.display = "none";
+
+      fetch("profile.php", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          action:          "save",
+          first_name:      document.getElementById("firstname").value.trim(),
+          education_level: document.getElementById("educationLevel").value,
+          study_interests: document.getElementById("studyInterests").value.trim(),
+          pfp_url:      document.getElementById("pfpUrl").value.trim()
+        })
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        saveMsg.style.display = "inline";
+        if (data.success) {
+          saveMsg.textContent = "Saved!";
+          saveMsg.className   = "save-msg";
+        } else {
+          saveMsg.textContent = data.error || "Failed to save.";
+          saveMsg.className   = "save-msg error";
+        }
+        setTimeout(function() { saveMsg.style.display = "none"; }, 3000);
+      });
+    }
+</script>
+
+<script src="achievements.js"></script>
+<nav class="bottom-nav">
+  <a href="index.html"><span class="nav-icon">💬</span>Chat</a>
+  <a href="calendar.html"><span class="nav-icon">📅</span>Calendar</a>
+  <a href="quiz.html"><span class="nav-icon">🧠</span>Quiz</a>
+  <button id="bottom-nav-more"><span class="nav-icon">☰</span>More</button>
+</nav>
+<script src="mobile.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Auth
+    fetch("auth.php?action=check")
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        if (data.loggedIn === false) { window.location.href = "login.html"; return; }
+        var u = document.getElementById("drawer-username");
+        if (u) u.textContent = data.username;
+      });
+    var lo = document.getElementById("drawer-logout");
+    if (lo) lo.addEventListener("click", function(e) {
+      e.preventDefault();
+      fetch("auth.php", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({action:"logout"}) })
+        .then(function(){ window.location.href = "login.html"; });
+    });
+    // Toggle labels
+    if (localStorage.getItem("theme") === "dark") {
+      var lbl = document.getElementById("toggle-label-drawer");
+      if (lbl) lbl.textContent = "Light Mode";
+    }
+    var more = document.getElementById("bottom-nav-more");
+    if (more) more.addEventListener("click", function(){ window.mobileOpenDrawer && window.mobileOpenDrawer(); });
+  });
+  function toggleTheme() {
+    var isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    document.documentElement.setAttribute("data-theme", isDark ? "" : "dark");
+    localStorage.setItem("theme", isDark ? "light" : "dark");
+    var lbl = document.getElementById("toggle-label-drawer");
+    if (lbl) lbl.textContent = isDark ? "Dark Mode" : "Light Mode";
+    // Also sync main toggle if present
+    var main = document.getElementById("toggle-label");
+    if (main) main.textContent = isDark ? "Dark Mode" : "Light Mode";
+  }
+</script>
+</body>
+</html>

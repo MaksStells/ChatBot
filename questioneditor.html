@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>BrightBot - Question Editor</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="mobile.css" />
+  <script>
+    if (localStorage.getItem("theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  </script>
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --card-bg: #ffffff;
+      --border: #e0e4ea;
+      --accent: #4CAF50;
+      --accent-dark: #45a049;
+      --error: #e74c3c;
+      --text: #333333;
+      --muted: #6b7280;
+      --input-bg: #ffffff;
+      --badge-correct-bg: #e8f5e9;
+      --badge-correct-border: #4CAF50;
+      --badge-correct-text: #2e7d32;
+      --badge-bg: #f5f5f5;
+      --badge-border: #e0e0e0;
+      --badge-text: #777777;
+      --toast-bg: #1a1a2e;
+      --toast-text: #ffffff;
+    }
+    [data-theme="dark"] {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --accent: #4CAF50;
+      --accent-dark: #45a049;
+      --error: #ff4d4d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --input-bg: #0d1117;
+      --badge-correct-bg: rgba(76,175,80,0.15);
+      --badge-correct-border: #4CAF50;
+      --badge-correct-text: #7ee787;
+      --badge-bg: #0d1117;
+      --badge-border: #30363d;
+      --badge-text: #8b949e;
+      --toast-bg: #161b22;
+      --toast-text: #e6edf3;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html {
+      overflow: auto !important;
+      height: auto !important;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      min-height: 100dvh;
+      height: auto !important;
+      overflow: auto !important;
+      transition: background 0.2s, color 0.2s;
+    }
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(128,128,128,0.4);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.65); }
+    [data-theme="dark"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); }
+    [data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.32); }
+    @media (max-width: 768px) {
+      body { padding-top: 52px; padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)); }
+      .page-content { padding: 16px; overflow-x: hidden; }
+      .mobile-header { display: flex; }
+      .bottom-nav    { display: flex; }
+      .form-card { padding: 16px; }
+      .answers-grid { grid-template-columns: 1fr !important; }
+      .answer-row { flex-wrap: nowrap; }
+      input[type="text"] { min-width: 0; }
+      .page-header h1 { font-size: 1.2rem; }
+    }
+    @media (min-width: 769px) {
+      body { padding: 0; }
+      .mobile-header, .bottom-nav { display: none !important; }
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .page-header h1 { font-size: 1.4rem; color: var(--accent); }
+    .page-header p  { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+    .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+    .btn {
+      padding: 9px 18px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-accent  { background: var(--accent); color: #000; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { border-color: var(--accent); }
+
+    .btn-danger {
+      background: transparent;
+      border: 1px solid var(--error);
+      color: var(--error);
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-danger:hover { background: rgba(231,76,60,0.1); }
+
+    .btn-edit {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .btn-edit:hover { border-color: var(--accent); color: var(--accent); }
+
+    .form-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 28px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .form-card h2 { font-size: 1rem; margin-bottom: 16px; color: var(--accent); }
+
+    label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 6px; }
+
+    input[type="text"] {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+
+    .hint { font-size: 0.78rem; color: var(--muted); margin-bottom: 14px; }
+
+    .answers-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 480px) { .answers-grid { grid-template-columns: 1fr; } }
+
+    .answer-row { display: flex; align-items: center; gap: 8px; }
+    .answer-row input[type="text"] { margin-bottom: 0; flex: 1; }
+    .answer-row input[type="radio"] { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+    .answer-label { font-size: 0.8rem; color: var(--muted); min-width: 14px; }
+
+    .form-footer { display: flex; justify-content: flex-end; gap: 10px; }
+
+    .editing-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: rgba(76,175,80,0.08);
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+      color: var(--accent);
+    }
+    .editing-banner.visible { display: flex; }
+    .editing-banner button {
+      margin-left: auto;
+      background: none;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .save-status { font-size: 0.75rem; color: var(--muted); text-align: right; margin-top: 8px; min-height: 18px; }
+    .save-status.saving { color: var(--accent); }
+    .save-status.error  { color: var(--error); }
+
+    .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .list-header h2 { font-size: 1rem; }
+    .list-header span { color: var(--muted); font-size: 0.85rem; }
+
+    .question-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; }
+
+    .q-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .q-card.is-editing { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(76,175,80,0.1); }
+
+    /* Clickable header row */
+    .q-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      cursor: pointer;
+      user-select: none;
+      background: var(--card-bg);
+      transition: background 0.15s;
+    }
+    .q-card-header:hover { background: var(--badge-bg); }
+    .q-card-chevron {
+      flex-shrink: 0;
+      font-size: 11px;
+      color: var(--muted);
+      transition: transform 0.22s;
+      margin-left: auto;
+    }
+    .q-card.open .q-card-chevron { transform: rotate(180deg); }
+    .q-index { font-size: 0.72rem; color: var(--muted); flex-shrink: 0; min-width: 28px; }
+    .q-text-preview {
+      flex: 1;
+      font-size: 0.92rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+    }
+
+    /* Collapsible body */
+    .q-card-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.28s ease, padding 0.2s;
+      padding: 0 16px;
+    }
+    .q-card.open .q-card-body {
+      max-height: 300px;
+      padding: 0 16px 14px;
+    }
+    .q-text-full { font-size: 0.92rem; line-height: 1.5; margin-bottom: 10px; color: var(--text); }
+    .q-answers { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .q-answer {
+      background: var(--badge-bg);
+      border: 1px solid var(--badge-border);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 0.78rem;
+      color: var(--badge-text);
+    }
+    .q-answer.is-correct {
+      border-color: var(--badge-correct-border);
+      background: var(--badge-correct-bg);
+      color: var(--badge-correct-text);
+      font-weight: 600;
+    }
+    .q-card-actions { display: flex; gap: 8px; }
+
+    .empty-state { text-align: center; color: var(--muted); padding: 40px 20px; font-size: 0.9rem; }
+
+    .toast {
+      position: fixed;
+      bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--toast-bg);
+      border: 1px solid var(--accent);
+      color: var(--toast-text);
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 9999;
+    }
+    @media (min-width: 769px) { .toast { bottom: 24px; } }
+    .toast.show { opacity: 1; }
+
+    input[type="file"] { display: none; }
+
+    /* ── Desktop layout: reuse style.css .sidebar ── */
+    @media (min-width: 769px) {
+      body { display: flex; flex-direction: row; min-height: 100vh; height: auto; overflow: visible; }
+      .sidebar { display: flex !important; height: 100vh; position: sticky; top: 0; flex-shrink: 0; }
+      .editor-main { flex: 1; min-width: 0; padding: 40px; overflow-y: auto; background: var(--bg); }
+      .page-content { max-width: 860px; margin: 0 auto; }
+    }
+    .mobile-header { background: var(--bg); border-bottom: 1px solid var(--border); }
+    .bottom-nav    { background: var(--bg); border-top:    1px solid var(--border); }
+    .bottom-nav a, .bottom-nav button { color: var(--muted); }
+    .bottom-nav a.active { color: var(--accent); }
+  </style>
+  <link rel="icon" type="image/x-icon" href="Images/brightbot-icon.ico">
+  <link rel="icon" type="image/svg+xml" href="Images/brightbot-icon.svg">
+  <link rel="apple-touch-icon" href="Images/brightbot-icon-192.png">
+</head>
+
+
+<!-- Mobile drawer -->
+<div id="drawer-overlay" class="drawer-overlay"></div>
+<div id="mobile-drawer" class="drawer">
+  <div class="drawer-top">
+    <div style="width:30px;height:30px;background:#4CAF50;border-radius:7px;color:#fff;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;">U</div>
+    <span style="color:#fff;font-size:18px;font-weight:700;margin-left:8px;">BrightBot</span>
+    <button id="drawer-close" class="drawer-close">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div>
+      <p class="drawer-section-label">Navigation</p>
+      
+      <a href="index.html" class="drawer-nav-link">💬 Chatbot</a>
+      <a href="calendar.html" class="drawer-nav-link">📅 Calendar</a>
+      <a href="quiz.html" class="drawer-nav-link">🧠 Quiz</a>
+      <a href="pomotimer.html" class="drawer-nav-link">🍅 Pomodoro Timer</a>
+      <a href="questioneditor.html" class="drawer-nav-link active">✏️ Question Editor</a>
+      <a href="profile.html" class="drawer-nav-link">👤 My Profile</a>
+    
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="theme-toggle" onclick="toggleTheme()" style="margin-bottom:10px;width:100%;">
+      <div class="toggle-track"><div class="toggle-thumb"></div></div>
+      <span class="toggle-label" id="toggle-label-drawer">Dark Mode</span>
+    </button>
+  </div>
+</div>
+
+<header class="mobile-header">
+  <a href="index.html" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:#ccc;text-decoration:none;font-size:22px;">&#8592;</a>
+  <div class="brand">
+    <div class="brand-icon">B</div>
+    <span class="brand-name">Question Editor</span>
+  </div>
+  <button id="hamburger-btn" class="hamburger-btn">&#x2630;</button>
+</header>
+
+<!-- Desktop sidebar -->
+<div class="sidebar">
+  <div class="brand">
+    <div class="brand-icon">B</div>
+    <span class="brand-name">BrightBot</span>
+  </div>
+  <div class="topics">
+    <p class="topics-label">Navigation</p>
+    
+  <a href="index.html" class="topic-btn">💬 Chatbot</a>
+  <a href="calendar.html" class="topic-btn">📅 Calendar</a>
+  <a href="quiz.html" class="topic-btn">🧠 Quiz</a>
+  <a href="pomotimer.html" class="topic-btn">🍅 Pomodoro Timer</a>
+  <a href="questioneditor.html" class="topic-btn active">✏️ Question Editor</a>
+  <a href="profile.html" class="topic-btn">👤 My Profile</a>
+
+  </div>
+  <div class="sidebar-footer">
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <div class="toggle-track"><div class="toggle-thumb"></div></div>
+      <span id="toggle-label-sidebar">Dark Mode</span>
+    </button>
+    <p>Signed in as <strong id="username-display-sidebar"></strong></p>
+    <a href="#" id="logoutBtn-sidebar">Sign out</a>
+  </div>
+</div>
+
+<div class="editor-main">
+<div class="page-content">
+
+  <div class="page-header">
+    <div>
+      <h1>✏️ Question Editor</h1>
+      <p>Add, edit, and manage quiz questions. Saved to database.</p>
+    </div>
+
+  </div>
+
+  <div class="form-card">
+    <div class="editing-banner" id="editing-banner">
+      ✏️ Editing question <span id="editing-num"></span>
+      <button onclick="cancelEdit()">Cancel</button>
+    </div>
+    <h2 id="form-title">Add New Question</h2>
+
+    <label>Question</label>
+    <input type="text" id="new-q" placeholder="e.g. What does RAM stand for?">
+
+    <p class="hint">Fill in all 4 answers, then select the correct one with the radio button.</p>
+
+    <div class="answers-grid">
+      <div class="answer-row">
+        <input type="radio" name="correct" value="0">
+        <span class="answer-label">A</span>
+        <input type="text" id="a0" placeholder="Answer A">
+      </div>
+      <div class="answer-row">
+        <input type="radio" name="correct" value="1">
+        <span class="answer-label">B</span>
+        <input type="text" id="a1" placeholder="Answer B">
+      </div>
+      <div class="answer-row">
+        <input type="radio" name="correct" value="2">
+        <span class="answer-label">C</span>
+        <input type="text" id="a2" placeholder="Answer C">
+      </div>
+      <div class="answer-row">
+        <input type="radio" name="correct" value="3">
+        <span class="answer-label">D</span>
+        <input type="text" id="a3" placeholder="Answer D">
+      </div>
+    </div>
+
+    <div class="form-footer">
+      <button class="btn btn-outline" onclick="clearForm()">Clear</button>
+      <button class="btn btn-accent" id="submit-btn" onclick="submitForm()">Add Question</button>
+    </div>
+    <div class="save-status" id="save-status"></div>
+  </div>
+
+  <div class="list-header">
+    <h2>All Questions</h2>
+    <span id="q-count">0 questions</span>
+  </div>
+  <div class="question-list" id="question-list"></div>
+</div>
+
+</div><!-- /editor-main -->
+
+<nav class="bottom-nav">
+  <a href="index.html"><span class="nav-icon">💬</span>Chat</a>
+  <a href="calendar.html"><span class="nav-icon">📅</span>Calendar</a>
+  <a href="quiz.html"><span class="nav-icon">🧠</span>Quiz</a>
+  <button id="bottom-nav-more"><span class="nav-icon">☰</span>More</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script src="mobile.js"></script>
+<script>
+  document.getElementById("bottom-nav-more").addEventListener("click", function() { window.mobileOpenDrawer(); });
+
+  function syncToggleLabels(isDark) {
+    var text = isDark ? "Light Mode" : "Dark Mode";
+    var lblD = document.getElementById("toggle-label-drawer");
+    var lblS = document.getElementById("toggle-label-sidebar");
+    if (lblD) lblD.textContent = text;
+    if (lblS) lblS.textContent = text;
+  }
+  function toggleTheme() {
+    var isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    document.documentElement.setAttribute("data-theme", isDark ? "" : "dark");
+    syncToggleLabels(!isDark);
+    localStorage.setItem("theme", isDark ? "light" : "dark");
+  }
+  (function() { if (localStorage.getItem("theme") === "dark") syncToggleLabels(true); })();
+
+  fetch("auth.php?action=check")
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.loggedIn === false) { window.location.href = "login.html"; return; }
+      var uS = document.getElementById("username-display-sidebar");
+      if (uS) uS.textContent = data.username;
+    });
+  var sidebarLogout = document.getElementById("logoutBtn-sidebar");
+  if (sidebarLogout) {
+    sidebarLogout.addEventListener("click", function(e) {
+      e.preventDefault();
+      fetch("auth.php", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "logout" }) })
+        .then(function() { window.location.href = "login.html"; });
+    });
+  }
+
+  var questions    = [];
+  var editingId    = null;
+  var editingIndex = null;
+
+  function loadQuestions() {
+    setSaveStatus("Loading…", "saving");
+    fetch("questions.php?action=get")
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success) {
+          questions = data.questions;
+          renderList();
+          setSaveStatus("");
+        } else { loadFromJSON(); }
+      })
+      .catch(function() { loadFromJSON(); });
+  }
+
+  function loadFromJSON() {
+    fetch("questions.json")
+      .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function(data) {
+        if (Array.isArray(data)) {
+          questions = data.map(function(q, i) { return { id: "json_" + i, q: q.q, a: q.a, correct: q.correct }; });
+          renderList();
+          setSaveStatus("Loaded from questions.json (no database connection)", "error");
+        }
+      })
+      .catch(function() { setSaveStatus(""); renderList(); });
+  }
+
+  function submitForm() {
+    var q = document.getElementById("new-q").value.trim();
+    var answers = [0,1,2,3].map(function(i) { return document.getElementById("a"+i).value.trim(); });
+    var correctRadio = document.querySelector('input[name="correct"]:checked');
+    if (!q)                                    return showToast("Please enter a question.");
+    if (answers.some(function(x) { return !x; })) return showToast("Please fill in all 4 answers.");
+    if (!correctRadio)                         return showToast("Please select the correct answer.");
+    var correct = parseInt(correctRadio.value);
+    if (editingId !== null) {
+      updateQuestion(editingId, q, answers, correct);
+    } else {
+      addQuestion(q, answers, correct);
+    }
+  }
+
+  function addQuestion(q, answers, correct) {
+    setSaveStatus("Saving…", "saving");
+    fetch("questions.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "add", q: q, a: answers, correct: correct })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data.success) {
+        showToast("Question added!"); setSaveStatus("Saved ✓"); clearForm(); loadQuestions();
+      } else {
+        showToast(data.error || "Failed to add."); setSaveStatus("Error", "error");
+      }
+    })
+    .catch(function() { showToast("Network error."); setSaveStatus("Error", "error"); });
+  }
+
+  function updateQuestion(id, q, answers, correct) {
+    if (String(id).startsWith("json_")) {
+      questions[editingIndex] = { id: id, q: q, a: answers, correct: correct };
+      cancelEdit(); renderList(); showToast("Question updated."); return;
+    }
+    setSaveStatus("Updating…", "saving");
+    fetch("questions.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update", id: id, q: q, a: answers, correct: correct })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data.success) {
+        showToast("Question updated!"); setSaveStatus("Saved ✓"); clearForm(); loadQuestions();
+      } else {
+        showToast(data.error || "Failed to update."); setSaveStatus("Error", "error");
+      }
+    })
+    .catch(function() { showToast("Network error."); setSaveStatus("Error", "error"); });
+  }
+
+  function deleteQuestion(id) {
+    if (!confirm("Delete this question?")) return;
+    if (String(id).startsWith("json_")) {
+      questions = questions.filter(function(q) { return q.id !== id; });
+      if (editingId === id) cancelEdit(); else renderList();
+      showToast("Question deleted."); return;
+    }
+    fetch("questions.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", id: id })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data.success) {
+        showToast("Question deleted."); if (editingId === id) cancelEdit(); loadQuestions();
+      } else { showToast("Failed to delete."); }
+    })
+    .catch(function() { showToast("Network error."); });
+  }
+
+  function startEdit(index) {
+    var item = questions[index];
+    editingId    = item.id;
+    editingIndex = index;
+    document.getElementById("new-q").value = item.q;
+    for (var i = 0; i < 4; i++) document.getElementById("a" + i).value = item.a[i] || "";
+    document.querySelectorAll('input[name="correct"]').forEach(function(r) {
+      r.checked = (parseInt(r.value) === item.correct);
+    });
+    document.getElementById("form-title").textContent = "Edit Question";
+    document.getElementById("submit-btn").textContent = "Save Changes";
+    document.getElementById("editing-banner").classList.add("visible");
+    document.getElementById("editing-num").textContent = "Q" + (index + 1);
+    renderList();
+    document.querySelector(".form-card").scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("new-q").focus();
+  }
+
+  function cancelEdit() {
+    editingId = null; editingIndex = null;
+    document.getElementById("form-title").textContent = "Add New Question";
+    document.getElementById("submit-btn").textContent = "Add Question";
+    document.getElementById("editing-banner").classList.remove("visible");
+    clearForm(); renderList();
+  }
+
+  function renderList() {
+    var list  = document.getElementById("question-list");
+    var count = document.getElementById("q-count");
+    count.textContent = questions.length + " question" + (questions.length !== 1 ? "s" : "");
+    list.innerHTML = "";
+    if (questions.length === 0) {
+      list.innerHTML = '<div class="empty-state">No questions yet. Add one above!</div>'; return;
+    }
+    questions.forEach(function(item, i) {
+      var card = document.createElement("div");
+      var isEditing = editingId === item.id;
+      card.className = "q-card" + (isEditing ? " is-editing open" : "");
+      var answersHtml = "";
+      for (var j = 0; j < item.a.length; j++) {
+        answersHtml += '<span class="q-answer' + (j === item.correct ? " is-correct" : "") + '">' + escapeHTML(item.a[j]) + '</span>';
+      }
+      card.innerHTML =
+        '<div class="q-card-header" onclick="toggleCard(this)">' +
+          '<span class="q-index">Q' + (i + 1) + '</span>' +
+          '<span class="q-text-preview">' + escapeHTML(item.q) + '</span>' +
+          '<span class="q-card-chevron">▼</span>' +
+        '</div>' +
+        '<div class="q-card-body">' +
+          '<div class="q-text-full">' + escapeHTML(item.q) + '</div>' +
+          '<div class="q-answers">' + answersHtml + '</div>' +
+          '<div class="q-card-actions">' +
+            '<button class="btn-edit"   onclick="startEdit(' + i + ')">Edit</button>' +
+            '<button class="btn-danger" onclick="deleteQuestion(\'' + item.id + '\')">Delete</button>' +
+          '</div>' +
+        '</div>';
+      list.appendChild(card);
+    });
+  }
+
+  function toggleCard(header) {
+    var card = header.parentElement;
+    card.classList.toggle("open");
+  }
+
+  function clearForm() {
+    document.getElementById("new-q").value = "";
+    for (var i = 0; i < 4; i++) document.getElementById("a" + i).value = "";
+    var checked = document.querySelector('input[name="correct"]:checked');
+    if (checked) checked.checked = false;
+    setSaveStatus("");
+  }
+
+
+  function setSaveStatus(msg, type) {
+    var el = document.getElementById("save-status");
+    el.textContent = msg;
+    el.className   = "save-status" + (type ? " " + type : "");
+  }
+  function showToast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg; t.classList.add("show");
+    setTimeout(function() { t.classList.remove("show"); }, 2500);
+  }
+  function escapeHTML(str) {
+    return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  loadQuestions();
+</script>
+<script src="achievements.js"></script>
+</body>
+</html>

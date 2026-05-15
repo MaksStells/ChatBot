@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>BrightBot - Student Support Chatbot</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="mobile.css" />
+  <script>
+    if (localStorage.getItem("theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  </script>
+  <link rel="icon" type="image/x-icon" href="Images/brightbot-icon.ico">
+  <link rel="icon" type="image/svg+xml" href="Images/brightbot-icon.svg">
+  <link rel="apple-touch-icon" href="Images/brightbot-icon-192.png">
+</head>
+<body>
+
+<div id="drawer-overlay" class="drawer-overlay"></div>
+
+<div id="mobile-drawer" class="drawer">
+  <div class="drawer-top">
+    <div class="brand-icon">B</div>
+    <span style="color:#fff;font-size:18px;font-weight:700;margin-left:8px;">BrightBot</span>
+    <button id="drawer-close" class="drawer-close">&#x2715;</button>
+  </div>
+  <div class="drawer-body">
+    <div>
+      <p class="drawer-section-label">Navigation</p>
+      <a href="index.html" class="drawer-nav-link active">💬 Chatbot</a>
+      <a href="calendar.html" class="drawer-nav-link">📅 Calendar</a>
+      <a href="quiz.html" class="drawer-nav-link">🧠 Quiz</a>
+      <a href="pomotimer.html" class="drawer-nav-link">🍅 Pomodoro Timer</a>
+      <a href="questioneditor.html" class="drawer-nav-link">✏️ Question Editor</a>
+      <a href="profile.html" class="drawer-nav-link">👤 My Profile</a>
+    </div>
+    <div>
+      <p class="drawer-section-label">Your Chats</p>
+      <button id="drawer-new-chat-btn" class="drawer-nav-link" style="background:none;border:none;width:100%;text-align:left;cursor:pointer;padding:8px 12px;color:inherit;font-size:inherit;">＋ New Chat</button>
+      <div id="drawer-chat-list"></div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="theme-toggle" onclick="toggleTheme()" style="margin-bottom:10px;width:100%;">
+      <div class="toggle-track"><div class="toggle-thumb"></div></div>
+      <span class="toggle-label" id="toggle-label-drawer">Dark Mode</span>
+    </button>
+    <p>Signed in as <strong id="drawer-username"></strong></p>
+    <a href="#" id="drawer-logout">Sign out</a>
+  </div>
+</div>
+
+<header class="mobile-header">
+  <button id="hamburger-btn" class="hamburger-btn">&#x2630;</button>
+  <div class="brand">
+    <div class="brand-icon">B</div>
+    <span class="brand-name">BrightBot</span>
+  </div>
+  <button class="new-chat-header-btn" id="mobile-new-chat-btn" title="New Chat" aria-label="New Chat">&#xFF0B; New Chat</button>
+</header>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">B</div>
+      <span class="brand-name">BrightBot</span>
+    </div>
+    <div class="topics">
+      <p class="topics-label">Navigation</p>
+      <a href="index.html" class="topic-btn active">💬 Chatbot</a>
+      <a href="calendar.html" class="topic-btn">📅 Calendar</a>
+      <a href="quiz.html" class="topic-btn">🧠 Quiz</a>
+      <a href="pomotimer.html" class="topic-btn">🍅 Pomodoro Timer</a>
+      <a href="questioneditor.html" class="topic-btn">✏️ Question Editor</a>
+      <a href="profile.html" class="topic-btn">👤 My Profile</a>
+    </div>
+    <div class="topics chats-section">
+      <p class="topics-label">Your Chats</p>
+      <button class="new-chat-btn" onclick="newChat()">&#xFF0B; New Chat</button>
+      <div id="chat-list"></div>
+    </div>
+
+    <!-- Theme toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <div class="toggle-track"><div class="toggle-thumb"></div></div>
+      <span class="toggle-label" id="toggle-label">Dark Mode</span>
+    </button>
+
+    <div class="sidebar-footer">
+      <p>Signed in as <strong id="username-display"></strong></p>
+      <a href="#" id="logoutBtn">Sign out</a>
+    </div>
+  </div>
+
+  <div class="chat-area">
+    <div class="chat-header">
+      <div class="status-dot"></div>
+      <span>BrightBot</span>
+    </div>
+    <div class="messages" id="messages"></div>
+    <div class="input-area">
+      <textarea id="userInput" placeholder="Message BrightBot..." rows="1"></textarea>
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="active">
+    <span class="nav-icon">&#x1F4AC;</span>Chat
+  </a>
+  <a href="calendar.html">
+    <span class="nav-icon">&#x1F4C5;</span>Calendar
+  </a>
+  <a href="quiz.html">
+    <span class="nav-icon">&#x1F0CF;</span>Cards
+  </a>
+  <button id="bottom-nav-more">
+    <span class="nav-icon">&#x2630;</span>More
+  </button>
+</nav>
+
+<script src="script.js"></script>
+<script src="mobile.js"></script>
+<script>
+  function syncToggleLabels(isDark) {
+    var lbl  = document.getElementById("toggle-label");
+    var lblD = document.getElementById("toggle-label-drawer");
+    var text = isDark ? "Light Mode" : "Dark Mode";
+    if (lbl)  lbl.textContent  = text;
+    if (lblD) lblD.textContent = text;
+  }
+
+  function toggleTheme() {
+    var isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    document.documentElement.setAttribute("data-theme", isDark ? "" : "dark");
+    syncToggleLabels(!isDark);
+    localStorage.setItem("theme", isDark ? "light" : "dark");
+  }
+
+  // Restore saved theme on load
+  (function() {
+    if (localStorage.getItem("theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+      syncToggleLabels(true);
+    }
+  })();
+
+  fetch("auth.php?action=check")
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data.loggedIn === false) {
+        window.location.href = "login.html";
+      } else {
+        var uD  = document.getElementById("username-display");
+        var uDr = document.getElementById("drawer-username");
+        if (uD)  uD.textContent  = data.username;
+        if (uDr) uDr.textContent = data.username;
+        init();
+        refreshDrawerChats();
+      }
+    });
+
+  function doLogout() {
+    fetch("auth.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "logout" })
+    }).then(function() { window.location.href = "login.html"; });
+  }
+
+  document.getElementById("logoutBtn").addEventListener("click", doLogout);
+  document.getElementById("drawer-logout").addEventListener("click", doLogout);
+  document.getElementById("bottom-nav-more").addEventListener("click", function() {
+    window.mobileOpenDrawer();
+  });
+
+  document.getElementById("drawer-new-chat-btn").addEventListener("click", function() {
+    window.mobileCloseDrawer();
+    newChat();
+  });
+
+  document.getElementById("mobile-new-chat-btn").addEventListener("click", function() {
+    newChat();
+  });
+
+  function refreshDrawerChats() {
+    fetch("chats.php?action=list")
+      .then(function(r){ return r.json(); })
+      .then(function(data){ renderDrawerChats(data.chats || []); });
+  }
+
+  function renderDrawerChats(chats) {
+    var list = document.getElementById("drawer-chat-list");
+    if (!list) return;
+    list.innerHTML = "";
+    if (chats.length === 0) {
+      list.innerHTML = '<p style="font-size:11px;color:#666;padding:6px 0;">No chats yet</p>';
+      return;
+    }
+    chats.forEach(function(chat) {
+      var item  = document.createElement("div");
+      item.className = "drawer-chat-item";
+      var title = document.createElement("span");
+      title.className   = "drawer-chat-title";
+      title.textContent = chat.title || "New Chat";
+      var del = document.createElement("button");
+      del.className   = "drawer-chat-del";
+      del.textContent = "\uD83D\uDDD1";
+      del.onclick = function(e) {
+        e.stopPropagation();
+        deleteChat(chat.id);
+        setTimeout(refreshDrawerChats, 300);
+      };
+      item.appendChild(title);
+      item.appendChild(del);
+      item.addEventListener("click", function() {
+        switchChat(chat.id);
+        window.mobileCloseDrawer();
+      });
+      list.appendChild(item);
+    });
+  }
+
+  var _origLoad = loadChatList;
+  loadChatList = function(cb) {
+    _origLoad(function(chats) {
+      renderDrawerChats(chats);
+      if (cb) cb(chats);
+    });
+  };
+</script>
+<script src="achievements.js"></script>
+</body>
+</html>

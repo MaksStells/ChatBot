@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>BrightBot - Flashcard Quiz</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="mobile.css" />
+    <script>
+        if (localStorage.getItem("theme") === "dark") {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+    </script>
+    <style>
+        .quiz-page {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 30px;
+          background-color: var(--bg);
+          transition: background-color 0.2s;
+        }
+        @media (max-width: 768px) {
+          .quiz-page {
+            padding: 16px;
+            padding-top: calc(52px + 16px);
+            padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 16px);
+            min-height: 100dvh;
+            box-sizing: border-box;
+          }
+        }
+
+        .score-board {
+          font-size: 1.4rem;
+          font-weight: bold;
+          margin-bottom: 20px;
+          color: var(--accent);
+        }
+
+        .quiz-container { width: 90%; max-width: 500px; }
+
+        .card {
+          background-color: var(--bubble-bot-bg);
+          border: 2px solid var(--bubble-bot-border);
+          border-radius: 20px;
+          padding: 40px;
+          text-align: center;
+          min-height: 200px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .question-text { font-size: 1.3rem; margin-bottom: 25px; color: var(--text); }
+        .options       { display: grid; gap: 10px; }
+
+        .options button {
+          background-color: var(--bubble-bot-bg);
+          border: 1px solid var(--bubble-bot-border);
+          color: var(--text);
+          padding: 14px;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 1rem;
+          width: 100%;
+          text-align: left;
+          transition: border-color 0.2s, background-color 0.2s;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        .options button:hover    { border-color: var(--accent); background-color: var(--sidebar-hover); }
+        .options button.correct  { border-color: #2ea043; background-color: rgba(46,160,67,0.25); color: #7ee787; font-weight: bold; }
+        .options button.wrong    { border-color: #ff4d4d; background-color: rgba(255,77,77,0.2); color: #ff4d4d; }
+
+        .error-msg   { color: #ff4d4d; text-align: center; font-size: 1rem; }
+        .final-score { color: var(--accent); font-size: 1.2rem; margin-bottom: 10px; }
+
+        .btn-restart {
+          background-color: var(--accent);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          padding: 14px 30px;
+          font-size: 1rem;
+          font-weight: bold;
+          cursor: pointer;
+          margin-top: 15px;
+          width: 100%;
+        }
+
+        .btn-restart:hover { background-color: var(--accent-hover); }
+
+        /* XP toast notification */
+        .xp-toast {
+          position: fixed;
+          bottom: 30px;
+          left: 50%;
+          transform: translateX(-50%);
+          background-color: var(--accent);
+          color: white;
+          padding: 12px 24px;
+          border-radius: 10px;
+          font-size: 14px;
+          font-weight: bold;
+          opacity: 0;
+          transition: opacity 0.3s;
+          pointer-events: none;
+          z-index: 999;
+        }
+
+        .xp-toast.show { opacity: 1; }
+
+        [data-theme="dark"] body {
+          background-color: #0d1117 !important;
+        }
+        [data-theme="dark"] .quiz-page,
+        [data-theme="dark"] .profile-page {
+          background-color: #0d1117 !important;
+        }
+
+        [data-theme="dark"] .card {
+          background-color: #161b22;
+          border-color: #30363d;
+        }
+        [data-theme="dark"] .question-text { color: #e6edf3; }
+        [data-theme="dark"] .options button {
+          background-color: #161b22;
+          border-color: #30363d;
+          color: #e6edf3;
+        }
+        [data-theme="dark"] .options button:hover {
+          background-color: #21262d;
+          border-color: #4CAF50;
+        }
+        [data-theme="dark"] .options button.correct {
+          border-color: #3fb950;
+          background-color: rgba(46,160,67,0.28);
+          color: #7ee787;
+          font-weight: bold;
+        }
+        [data-theme="dark"] .options button.wrong {
+          border-color: #ff4d4d;
+          background-color: rgba(255,77,77,0.22);
+          color: #ff7b7b;
+        }
+        [data-theme="dark"] .score-board { color: #4CAF50; }
+    </style>
+  <link rel="icon" type="image/x-icon" href="Images/brightbot-icon.ico">
+  <link rel="icon" type="image/svg+xml" href="Images/brightbot-icon.svg">
+  <link rel="apple-touch-icon" href="Images/brightbot-icon-192.png">
+</head>
+<body>
+<header class="mobile-header">
+  <a href="index.html" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;color:#ccc;text-decoration:none;font-size:22px;">&#8592;</a>
+  <div class="brand">
+    <div class="brand-icon">B</div>
+    <span class="brand-name">🧠 Quiz</span>
+  </div>
+  <button id="hamburger-btn" class="hamburger-btn">&#x2630;</button>
+</header>
+
+<!-- Mobile drawer -->
+<div id="drawer-overlay" class="drawer-overlay"></div>
+<div id="mobile-drawer" class="drawer">
+  <div class="drawer-top">
+    <div class="brand-icon">B</div>
+    <span style="color:#fff;font-size:17px;font-weight:700;margin-left:6px;">BrightBot</span>
+    <button id="drawer-close" class="drawer-close">&#x2715;</button>
+  </div>
+  <div class="drawer-body">
+    <p class="drawer-section-label">Navigation</p>
+    <a href="index.html" class="drawer-nav-link">💬 Chatbot</a>
+    <a href="calendar.html" class="drawer-nav-link">📅 Calendar</a>
+    <a href="quiz.html" class="drawer-nav-link active">🧠 Quiz</a>
+    <a href="pomotimer.html" class="drawer-nav-link">🍅 Pomodoro Timer</a>
+    <a href="questioneditor.html" class="drawer-nav-link">✏️ Question Editor</a>
+    <a href="profile.html" class="drawer-nav-link ">👤 My Profile</a>
+  </div>
+  <div class="drawer-footer">
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <div class="toggle-track"><div class="toggle-thumb"></div></div>
+      <span class="toggle-label" id="toggle-label-drawer">Dark Mode</span>
+    </button>
+    <br/>
+    <p>Signed in as <strong id="drawer-username"></strong></p>
+    <a href="#" id="drawer-logout">Sign out</a>
+  </div>
+</div>
+
+<div class="layout">
+
+    <div class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">B</div>
+            <span class="brand-name">BrightBot</span>
+        </div>
+
+        <div class="topics">
+            <p class="topics-label">Navigation</p>
+            <a href="index.html" class="topic-btn">💬 Chatbot</a>
+            <a href="calendar.html" class="topic-btn">📅 Calendar</a>
+            <a href="quiz.html" class="topic-btn active">🧠 Quiz</a>
+            <a href="pomotimer.html" class="topic-btn">🍅 Pomodoro Timer</a>
+            <a href="questioneditor.html" class="topic-btn">✏️ Question Editor</a>
+            <a href="profile.html" class="topic-btn">👤 My Profile</a>
+        </div>
+
+        <div class="sidebar-footer">
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <div class="toggle-track"><div class="toggle-thumb"></div></div>
+                <span class="toggle-label" id="toggle-label">Dark Mode</span>
+            </button>
+            <br/>
+            <p>Need urgent help?</p>
+            <a href="#">Contact Student Services</a>
+        </div>
+    </div>
+
+    <div class="quiz-page">
+        <div class="score-board">Score: <span id="score">0</span></div>
+        <div class="quiz-container">
+            <div class="card">
+                <div class="question-text" id="question">Loading questions...</div>
+                <div class="options" id="options"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="xp-toast" id="xp-toast"></div>
+
+<script>
+    function syncToggleLabel(isDark) {
+      var lbl = document.getElementById("toggle-label");
+      if (lbl) lbl.textContent = isDark ? "Light Mode" : "Dark Mode";
+    }
+
+    function toggleTheme() {
+      var isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      document.documentElement.setAttribute("data-theme", isDark ? "" : "dark");
+      localStorage.setItem("theme", isDark ? "light" : "dark");
+      syncToggleLabel(!isDark);
+    }
+
+    (function() {
+      var isDark = localStorage.getItem("theme") === "dark";
+      if (isDark) document.documentElement.setAttribute("data-theme", "dark");
+      syncToggleLabel(isDark);
+    })();
+
+    function showToast(msg) {
+      var toast = document.getElementById("xp-toast");
+      toast.textContent = msg;
+      toast.classList.add("show");
+      setTimeout(function() { toast.classList.remove("show"); }, 3000);
+    }
+
+    // Quiz logic
+    var quizData         = [];
+    var currentQuestions = [];
+    var score            = 0;
+    var currentIndex     = 0;
+
+    function shuffleArray(array) {
+      for (var i = array.length - 1; i > 0; i--) {
+        var j    = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+      }
+      return array;
+    }
+
+    function initGame() {
+      currentQuestions = shuffleArray(quizData.slice()).slice(0, 10); // takes only 10 questions after shuffle.
+      score        = 0;
+      currentIndex = 0;
+      showQuestion();
+    }
+
+    function showQuestion() {
+      var questionEl = document.getElementById("question");
+      var optionsEl  = document.getElementById("options");
+      var data       = currentQuestions[currentIndex];
+
+      questionEl.textContent = data.q;
+      optionsEl.innerHTML    = "";
+
+      for (var i = 0; i < data.a.length; i++) {
+        var btn = document.createElement("button");
+        btn.textContent = data.a[i];
+        btn.setAttribute("data-index", i);
+        btn.onclick = function() {
+          checkAnswer(parseInt(this.getAttribute("data-index")));
+        };
+        optionsEl.appendChild(btn);
+      }
+    }
+
+    function checkAnswer(choice) {
+      var data    = currentQuestions[currentIndex];
+      var buttons = document.querySelectorAll("#options button");
+
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].onclick = null;
+      }
+
+      buttons[data.correct].classList.add("correct");
+      if (choice !== data.correct) {
+        buttons[choice].classList.add("wrong");
+      }
+
+      setTimeout(function() {
+        if (choice === data.correct) {
+          score++;
+          document.getElementById("score").textContent = score;
+        }
+        currentIndex++;
+        if (currentIndex < currentQuestions.length) {
+          showQuestion();
+        } else {
+          showFinished();
+        }
+      }, 900);
+    }
+
+    function showFinished() {
+      var total   = currentQuestions.length;
+      var perfect = score === total;
+
+      document.getElementById("question").textContent = "All done!";
+      document.getElementById("options").innerHTML =
+        '<p class="final-score">Final Score: ' + score + ' / ' + total + '</p>' +
+        '<button class="btn-restart" onclick="location.reload()">Play Again</button>';
+
+      // Award XP for completing the quiz
+      fetch("stats.php", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ action: "quiz_complete", score: score, total: total })
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success) {
+          var msg = "+" + data.xp_gained + " XP";
+          if (perfect) msg += " 🌟 Perfect score bonus!";
+          showToast(msg);
+
+          // Show any new badges earned
+          if (data.new_badges && data.new_badges.length > 0) {
+            setTimeout(function() {
+              for (var i = 0; i < data.new_badges.length; i++) {
+                var b = data.new_badges[i];
+                (function(badge) {
+                  setTimeout(function() {
+                    showToast(badge.icon + " Badge unlocked: " + badge.name + "!");
+                  }, i * 2000);
+                })(b);
+              }
+            }, 1500);
+          }
+        }
+      });
+    }
+
+    function showLoadError(message) {
+      document.getElementById("question").textContent = "";
+      document.getElementById("options").innerHTML = '<p class="error-msg">' + message + '</p>';
+    }
+
+    // Load questions from the database
+    fetch("questions.php?action=get")
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (!data.success || data.questions.length === 0) {
+          showLoadError("No questions found. Please add some in the Question Editor.");
+          return;
+        }
+        quizData = data.questions;
+        initGame();
+      })
+      .catch(function() {
+        showLoadError("Failed to load questions. Please try again.");
+      });
+</script>
+
+<nav class="bottom-nav">
+  <a href="index.html"><span class="nav-icon">💬</span>Chat</a>
+  <a href="calendar.html"><span class="nav-icon">📅</span>Calendar</a>
+  <a href="quiz.html" class="active"><span class="nav-icon">🧠</span>Quiz</a>
+  <button id="bottom-nav-more"><span class="nav-icon">☰</span>More</button>
+</nav>
+<script src="mobile.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Auth
+    fetch("auth.php?action=check")
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        if (data.loggedIn === false) { window.location.href = "login.html"; return; }
+        var u = document.getElementById("drawer-username");
+        if (u) u.textContent = data.username;
+      });
+    var lo = document.getElementById("drawer-logout");
+    if (lo) lo.addEventListener("click", function(e) {
+      e.preventDefault();
+      fetch("auth.php", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({action:"logout"}) })
+        .then(function(){ window.location.href = "login.html"; });
+    });
+    // Toggle labels
+    if (localStorage.getItem("theme") === "dark") {
+      var lbl = document.getElementById("toggle-label-drawer");
+      if (lbl) lbl.textContent = "Light Mode";
+    }
+    // Bottom nav more
+    var more = document.getElementById("bottom-nav-more");
+    if (more) more.addEventListener("click", function(){ window.mobileOpenDrawer && window.mobileOpenDrawer(); });
+  });
+  function toggleTheme() {
+    var isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    document.documentElement.setAttribute("data-theme", isDark ? "" : "dark");
+    localStorage.setItem("theme", isDark ? "light" : "dark");
+    var lbl = document.getElementById("toggle-label-drawer");
+    if (lbl) lbl.textContent = isDark ? "Dark Mode" : "Light Mode";
+    // Also sync main toggle if present
+    var main = document.getElementById("toggle-label");
+    if (main) main.textContent = isDark ? "Dark Mode" : "Light Mode";
+  }
+</script>
+<script src="achievements.js"></script>
+</body>
+</html>

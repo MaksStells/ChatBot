@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>BrightBot - Login</title>
+    <link rel="stylesheet" href="style.css"/>
+    <link rel="stylesheet" href="auth.css"/>
+    <link rel="stylesheet" href="mobile.css"/>
+    <style>
+        body { overflow: auto !important; height: auto !important; min-height: 100dvh !important; background: #1a1a2e !important; }
+        .auth-page { min-height: 100dvh !important; width: 100vw !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; padding: 24px 16px !important; box-sizing: border-box !important; background: #1a1a2e !important; }
+        .auth-box { width: 100% !important; max-width: 400px !important; box-sizing: border-box !important; }
+    </style>
+  <link rel="icon" type="image/x-icon" href="Images/brightbot-icon.ico">
+  <link rel="icon" type="image/svg+xml" href="Images/brightbot-icon.svg">
+  <link rel="apple-touch-icon" href="Images/brightbot-icon-192.png">
+</head>
+<body>
+
+<div class="auth-page">
+    <div class="auth-box">
+        <div class="auth-brand">
+            <div class="brand-icon">B</div>
+            <span class="brand-name">BrightBot</span>
+        </div>
+        <h2>Login</h2>
+        <p class="auth-sub">Sign in to your account</p>
+        <div id="error-message" class="auth-error hidden"></div>
+        <div class="auth-form">
+            <input type="text"     id="username" placeholder="Username"
+                   autocomplete="username" autocapitalize="none" autocorrect="off" />
+            <input type="password" id="password" placeholder="Password"
+                   autocomplete="current-password" />
+            <button id="loginBtn">Login</button>
+        </div>
+        <p class="auth-switch">Don't have an account? <a href="register.html">Register here</a></p>
+    </div>
+</div>
+
+<script>
+    document.getElementById("loginBtn").addEventListener("click", function() {
+      var u   = document.getElementById("username").value.trim();
+      var p   = document.getElementById("password").value;
+      var err = document.getElementById("error-message");
+
+      err.classList.add("hidden");
+
+      if (!u || !p) {
+        err.textContent = "Please fill in all fields.";
+        err.classList.remove("hidden");
+        return;
+      }
+
+      fetch("auth.php", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ action: "login", username: u, password: p })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          fetch("stats.php", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ action: "daily_login" })
+          }).finally(function() {
+            window.location.href = "index.html";
+          });
+        } else {
+          err.textContent = data.error || "Login failed.";
+          err.classList.remove("hidden");
+        }
+      })
+      .catch(function() {
+        err.textContent = "Could not connect to server. Please try again.";
+        err.classList.remove("hidden");
+      });
+    });
+
+    document.getElementById("password").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") document.getElementById("loginBtn").click();
+    });
+</script>
+
+</body>
+</html>
